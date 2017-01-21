@@ -376,6 +376,15 @@ void listenerLoopFinish()
 		{
 			PA_YieldAbsolute();
 			PA_UnfreezeProcess(SN::MONITOR_PROCESS_ID);
+
+			C_TEXT name;
+			PA_long32 state, time;
+			PA_GetProcessInfo(SN::MONITOR_PROCESS_ID, name, &state, &time);
+			
+			//on v16 (32 or 64) the above code is not waking the listener loop; just exit
+#if VERSIONMAC
+			SN::MONITOR_PROCESS_ID = 0;
+#endif
 		}
 	}
 #if VERSIONMAC
