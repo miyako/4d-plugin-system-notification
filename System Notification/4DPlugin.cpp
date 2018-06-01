@@ -16,7 +16,6 @@
 
 namespace SN
 {
-	
 	process_name_t MONITOR_PROCESS_NAME = (PA_Unichar *)"$\0S\0L\0E\0E\0P\0_\0N\0O\0T\0I\0F\0I\0C\0A\0T\0I\0O\0N\0\0\0";
 	process_number_t MONITOR_PROCESS_ID = 0;
 	process_stack_size_t MONITOR_PROCESS_STACK_SIZE = 0;
@@ -26,12 +25,9 @@ namespace SN
 	bool MONITOR_PROCESS_SHOULD_TERMINATE;
 	std::vector<event_id_t>CALLBACK_EVENT_IDS;
 	bool termination_not_allowed = false;
-	bool monitor_process_running = false;
+
 #if VERSIONMAC
 	Listener *listener = nil;
-	IMP applicationShouldTerminate_original;
-	IMP applicationShouldTerminate_swizzled;
-	AEEventHandlerUPP applicationShouldTerminate_upp;
 #else
 	HWND windowRef = NULL;
 	WNDPROC originalWndProc = NULL;
@@ -42,7 +38,7 @@ namespace SN
 	{
 		SN::CALLBACK_EVENT_ID = event;
 		SN::CALLBACK_EVENT_IDS.push_back(SN::CALLBACK_EVENT_ID);
-		PA_UnfreezeProcess(SN::MONITOR_PROCESS_ID);
+		listenerLoopExecute();
 	}
 	
 	HWND getHWND()
@@ -123,6 +119,31 @@ namespace SN
 
 #if VERSIONMAC
 
+#if CGFLOAT_IS_DOUBLE
+static IMP __orig_imp_applicationShouldTerminate;
+
+NSApplicationTerminateReply __swiz_applicationShouldTerminate(id self, SEL _cmd, id sender)
+{	
+	[SN::listener call:6];
+	
+	return NSTerminateCancel;//refuse to quit
+}
+
+IMP __swiz_imp_applicationShouldTerminate = (IMP)__swiz_applicationShouldTerminate;
+#else
+AEEventHandlerUPP __upp_applicationShouldTerminate;
+OSErr carbon_applicationShouldTerminate(const AppleEvent *appleEvt, AppleEvent* reply, UInt32 refcon)
+{
+	[SN::listener call:6];
+	
+	return noErr;
+}
+static pascal OSErr HandleQuitMessage(const AppleEvent *appleEvt, AppleEvent *reply, long refcon)
+{
+	return userCanceledErr;
+}
+#endif
+
 @implementation Listener
 
 - (id)init
@@ -161,31 +182,73 @@ namespace SN
 	 name:NSWorkspaceWillPowerOffNotification
 	 object:nil];
 	
+	/* swizzle */
+#if CGFLOAT_IS_DOUBLE
+	Class MainAppDelegateClass = [[[NSApplication sharedApplication]delegate]class];
+	
+	if(MainAppDelegateClass)
+	{
+		__orig_imp_applicationShouldTerminate =
+		method_setImplementation(
+														 class_getInstanceMethod(MainAppDelegateClass,
+																										 @selector(applicationShouldTerminate:)),
+														 __swiz_imp_applicationShouldTerminate);
+	}
+#else
+	__upp_applicationShouldTerminate = NewAEEventHandlerUPP(HandleQuitMessage);
+	AEInstallEventHandler(kCoreEventClass,
+												kAEQuitApplication,
+												__upp_applicationShouldTerminate, 0, false);
+#endif
+
 	return self;
 }
+
 - (void)dealloc
 {
+	/* swizzle */
+#if CGFLOAT_IS_DOUBLE
+	Class MainAppDelegateClass = [[[NSApplication sharedApplication]delegate]class];
+	
+	if(MainAppDelegateClass)
+	{
+		method_setImplementation(
+														 class_getInstanceMethod(MainAppDelegateClass, @selector(applicationShouldTerminate:)),
+														 __orig_imp_applicationShouldTerminate);
+	}
+#else
+	AERemoveEventHandler(kCoreEventClass,
+											 kAEQuitApplication,
+											 __upp_applicationShouldTerminate,
+											 false);
+	DisposeAEEventHandlerUPP(__upp_applicationShouldTerminate);
+#endif
+	
 	[[[NSWorkspace sharedWorkspace] notificationCenter]removeObserver:self];
-	SN::CALLBACK_EVENT_IDS.clear();
+	
 	[super dealloc];
 }
+
 - (void)didWake:(NSNotification *)notification
 {
 	[self call:1];
 }
+
 - (void)willSleep:(NSNotification *)notification
 {
 	[self call:2];
 }
-//it seems we don't reveice this notification if we handle kAEQuitApplication
+
 - (void)willPowerOff:(NSNotification *)notification
 {
 	[self call:3];
 }
+
 - (void)screensDidWake:(NSNotification *)notification
 {
 	[self call:4];
 }
+
 - (void)screensDidSleep:(NSNotification *)notification
 {
 	[self call:5];
@@ -195,25 +258,10 @@ namespace SN
 {
 	SN::CALLBACK_EVENT_ID = event;
 	SN::CALLBACK_EVENT_IDS.push_back(SN::CALLBACK_EVENT_ID);
-	PA_UnfreezeProcess(SN::MONITOR_PROCESS_ID);
+	listenerLoopExecute();
 }
+
 @end
-
-NSApplicationTerminateReply swizzle_applicationShouldTerminate(id self, SEL _cmd)
-{
-	[SN::listener call:6];
-	
-	//https://blog.newrelic.com/2014/04/16/right-way-to-swizzle/
-	
-		return NSTerminateNow;
-}
-
-OSErr carbon_applicationShouldTerminate(const AppleEvent *appleEvt, AppleEvent* reply, UInt32 refcon)
-{
-	[SN::listener call:6];
-	
-	return noErr;
-}
 
 #endif
 
@@ -266,10 +314,7 @@ bool IsProcessOnExit()
 void OnStartup()
 {
 #if VERSIONMAC
-	static dispatch_once_t onceToken;
-	dispatch_once(&onceToken, ^{
-		SN::applicationShouldTerminate_swizzled = (IMP)swizzle_applicationShouldTerminate;
-	});
+
 #else
 	SN::windowRef = SN::getHWND();
 #endif
@@ -279,13 +324,7 @@ void OnCloseProcess()
 {
 	if(IsProcessOnExit())
 	{
-#if VERSIONWIN
-		//should NOT do this in the main process
 		listenerLoopFinish();
-#else
-		PA_RunInMainProcess((PA_RunInMainProcessProcPtr)listenerLoopFinish, NULL);
-//		[[NSApplication sharedApplication]replyToApplicationShouldTerminate:YES];
-#endif
 	}
 }
 
@@ -294,29 +333,58 @@ void OnCloseProcess()
 void listenerLoop()
 {
 	SN::MONITOR_PROCESS_SHOULD_TERMINATE = false;
+
+#if VERSIONMAC
+	SN::listener = [[Listener alloc]init];
+#else
+	SN::first_event_call = true;
+	SN::notificationHandle = RegisterPowerSettingNotification(
+																														SN::windowRef, &GUID_MONITOR_POWER_ON,
+																														DEVICE_NOTIFY_WINDOW_HANDLE);
+	
+	SN::originalWndProc = (WNDPROC)GetWindowLongPtr(SN::windowRef, GWLP_WNDPROC);
+	SetWindowLongPtr(SN::windowRef, GWLP_WNDPROC, (LONG_PTR)SN::customWndProc);
+#endif
 	
 	while(!SN::MONITOR_PROCESS_SHOULD_TERMINATE)
 	{
 		PA_YieldAbsolute();
+		
 		while(SN::CALLBACK_EVENT_IDS.size())
 		{
 			PA_YieldAbsolute();
-			C_TEXT processName;
-			generateUuid(processName);
-			PA_NewProcess((void *)listenerLoopExecute,
-										SN::MONITOR_PROCESS_STACK_SIZE,
-										(PA_Unichar *)processName.getUTF16StringPtr());
 			
+			listenerLoopExecuteMethod();
+			
+			/*
+			 C_TEXT processName;
+			 generateUuid(processName);
+			 PA_NewProcess((void *)listenerLoopExecute,
+			 SN::MONITOR_PROCESS_STACK_SIZE,
+			 (PA_Unichar *)processName.getUTF16StringPtr());
+			 */
+
 			if(SN::MONITOR_PROCESS_SHOULD_TERMINATE)
 				break;
 		}
 		
-		if(!SN::MONITOR_PROCESS_SHOULD_TERMINATE){
+		if(!SN::MONITOR_PROCESS_SHOULD_TERMINATE)
+		{
 			PA_FreezeProcess(PA_GetCurrentProcessNumber());
-		}else{
-			SN::MONITOR_PROCESS_ID = 0;
 		}
 	}
+	
+#if VERSIONMAC
+	[SN::listener release];
+	SN::listener = nil;
+#else
+	UnregisterPowerSettingNotification(SN::notificationHandle);
+	SN::notificationHandle = NULL;
+	SetWindowLongPtr(SN::windowRef, GWLP_WNDPROC, (LONG_PTR)SN::originalWndProc);
+#endif
+	
+	SN::MONITOR_PROCESS_ID = 0;
+	
 	PA_KillProcess();
 }
 
@@ -324,88 +392,37 @@ void listenerLoopStart()
 {
 	if(!SN::MONITOR_PROCESS_ID)
 	{
-#if VERSIONMAC
-		SN::listener = [[Listener alloc]init];
-#else
-		SN::first_event_call = true;
-		SN::notificationHandle = RegisterPowerSettingNotification(
-																															SN::windowRef, &GUID_MONITOR_POWER_ON,
-																															DEVICE_NOTIFY_WINDOW_HANDLE);
-		
-		SN::originalWndProc = (WNDPROC)GetWindowLongPtr(SN::windowRef, GWLP_WNDPROC);
-		SetWindowLongPtr(SN::windowRef, GWLP_WNDPROC, (LONG_PTR)SN::customWndProc);
-#endif
-		SN::MONITOR_PROCESS_ID = PA_NewProcess((void *)listenerLoop, SN::MONITOR_PROCESS_STACK_SIZE, SN::MONITOR_PROCESS_NAME);
+		SN::MONITOR_PROCESS_ID = PA_NewProcess((void *)listenerLoop,
+																					 SN::MONITOR_PROCESS_STACK_SIZE,
+																					 SN::MONITOR_PROCESS_NAME);
 	}
-#if VERSIONMAC
-	//swizzled nsapplication class gives no breathing space to call method; use apple event
-	/*
-	Method applicationShouldTerminate = class_getInstanceMethod([[[NSApplication sharedApplication]delegate]class],
-																				@selector(applicationShouldTerminate:));
-	
-	if(applicationShouldTerminate)
-	{
-		SN::applicationShouldTerminate_original =
-		method_setImplementation(applicationShouldTerminate, SN::applicationShouldTerminate_swizzled);
-	}else
-	*/
-	{
-		//if we process the quit event to suspend shut down;
-		//the app will not be running by the time NSWorkspaceWillPowerOffNotification is posted
-		SN::applicationShouldTerminate_upp = NewAEEventHandlerUPP((AEEventHandlerProcPtr)carbon_applicationShouldTerminate);
-		AEInstallEventHandler(kCoreEventClass, kAEQuitApplication, SN::applicationShouldTerminate_upp, 0, false);
-	}
-#endif
 }
 
 void listenerLoopFinish()
 {
 	if(SN::MONITOR_PROCESS_ID)
 	{
-		//set flags
+		
 		SN::MONITOR_PROCESS_SHOULD_TERMINATE = true;
+		
 		PA_YieldAbsolute();
+		
 		SN::LISTENER_METHOD.setUTF16String((PA_Unichar *)"\0\0", 0);
 		SN::CALLBACK_METHOD_ID = 0;
-#if VERSIONMAC
-		[SN::listener release];
-		SN::listener = nil;
-#endif
-//on v16 (32 or 64) the code is not waking the listener loop; just exit
-//tell listener to die
-//		while(SN::MONITOR_PROCESS_ID)
-//		{
-//			PA_YieldAbsolute();
-			PA_UnfreezeProcess(SN::MONITOR_PROCESS_ID);
-		
-//#if VERSIONMAC
-//			SN::MONITOR_PROCESS_ID = 0;
-//#endif
-//		}
+		SN::CALLBACK_EVENT_IDS.clear();
+
+		PA_UnfreezeProcess(SN::MONITOR_PROCESS_ID);
 	}
-#if VERSIONMAC
-	//swizzled nsapplication class gives no breathing space to call method; use apple event instead
-	/*
-	Method applicationShouldTerminate = class_getInstanceMethod([[[NSApplication sharedApplication]delegate]class],
-																				@selector(applicationShouldTerminate:));
-	
-	if(applicationShouldTerminate)
-	{
-		method_setImplementation(applicationShouldTerminate, SN::applicationShouldTerminate_original);
-	}else
-	*/
-	{
-		DisposeAEEventHandlerUPP(SN::applicationShouldTerminate_upp);
-	}
-#else
-	UnregisterPowerSettingNotification(SN::notificationHandle);
-	SN::notificationHandle = NULL;
-	SetWindowLongPtr(SN::windowRef, GWLP_WNDPROC, (LONG_PTR)SN::originalWndProc);
-#endif
-	SN::monitor_process_running = false;
 }
 
 void listenerLoopExecute()
+{
+	SN::MONITOR_PROCESS_SHOULD_TERMINATE = false;
+	
+	PA_UnfreezeProcess(SN::MONITOR_PROCESS_ID);
+}
+
+void listenerLoopExecuteMethod()
 {
 	std::vector<event_id_t>::iterator e = SN::CALLBACK_EVENT_IDS.begin();
 	event_id_t event = (*e) - 1;
@@ -415,14 +432,29 @@ void listenerLoopExecute()
 		PA_Variable	params[1];
 		params[0] = PA_CreateVariable(eVK_Longint);
 		PA_SetLongintVariable(&params[0], event);
-		//the method could be paused or traced
+
 		SN::CALLBACK_EVENT_IDS.erase(e);
+		
 		PA_ExecuteMethodByID(SN::CALLBACK_METHOD_ID, params, 1);
+		
 		PA_ClearVariable(&params[0]);
 	}else{
-		//the method could have been removed
+		PA_Variable	params[2];
+		params[1] = PA_CreateVariable(eVK_Longint);
+		PA_SetLongintVariable(&params[1], event);
+		
+		params[0] = PA_CreateVariable(eVK_Unistring);
+		PA_Unistring method = PA_CreateUnistring((PA_Unichar *)SN::LISTENER_METHOD.getUTF16StringPtr());
+		PA_SetStringVariable(&params[0], &method);
+		
 		SN::CALLBACK_EVENT_IDS.erase(e);
+		
+		PA_ExecuteCommandByID(1007, params, 2);
+		
+		PA_ClearVariable(&params[0]);
+		PA_ClearVariable(&params[1]);
 	}
+	
 }
 
 #pragma mark -
@@ -472,50 +504,47 @@ void CommandDispatcher (PA_long32 pProcNum, sLONG_PTR *pResult, PackagePtr pPara
 
 // --------------------------------- Notification ---------------------------------
 
+#pragma mark -
 
 void SN_Set_method(sLONG_PTR *pResult, PackagePtr pParams)
 {
 	C_TEXT Param1;
 	C_LONGINT returnValue;
 	
-	Param1.fromParamAtIndex(pParams, 1);
-	
-	if(!Param1.getUTF16Length())
+	if(!IsProcessOnExit())
 	{
-		//empty string passed
-		returnValue.setIntValue(1);
-		if(SN::LISTENER_METHOD.getUTF16Length())
+		Param1.fromParamAtIndex(pParams, 1);
+		
+		if(!Param1.getUTF16Length())
 		{
-#if VERSIONWIN
-			//should NOT do this in the main process
-			listenerLoopFinish();
-#else
-			PA_RunInMainProcess((PA_RunInMainProcessProcPtr)listenerLoopFinish, NULL);
-#endif
-		}
-	}else
-	{
-		int methodId = PA_GetMethodID((PA_Unichar *)Param1.getUTF16StringPtr());
-		if(methodId)
-		{
+			//empty string passed
 			returnValue.setIntValue(1);
-			if(methodId != SN::CALLBACK_METHOD_ID)
+			SN::CALLBACK_METHOD_ID = 0;
+			SN::LISTENER_METHOD.setUTF16String((PA_Unichar *)"\0\0", 0);
+			
+			listenerLoopFinish();
+			
+		}else{
+			
+			method_id_t methodId = PA_GetMethodID((PA_Unichar *)Param1.getUTF16StringPtr());
+			
+			if(methodId)
 			{
-				SN::LISTENER_METHOD.setUTF16String(Param1.getUTF16StringPtr(), Param1.getUTF16Length());
-				SN::CALLBACK_METHOD_ID = methodId;
-				if(!SN::monitor_process_running)
+				returnValue.setIntValue(1);
+				
+				if(methodId != SN::CALLBACK_METHOD_ID)
 				{
-					SN::monitor_process_running = true;
-#if VERSIONWIN
-					//should NOT do this in the main process
+					SN::LISTENER_METHOD.setUTF16String(Param1.getUTF16StringPtr(), Param1.getUTF16Length());
+					SN::CALLBACK_METHOD_ID = methodId;
+					
 					listenerLoopStart();
-#else
-					PA_RunInMainProcess((PA_RunInMainProcessProcPtr)listenerLoopStart, NULL);
-#endif
 				}
+			}else{
+				returnValue.setIntValue(SYSTEM_NOTIFICATION_INVALID_METHOD_NAME_ERROR);
 			}
 		}
 	}
+	
 	returnValue.setReturn(pResult);
 }
 

@@ -20,6 +20,7 @@ void listenerLoop(void);
 void listenerLoopStart(void);
 void listenerLoopFinish(void);
 void listenerLoopExecute(void);
+void listenerLoopExecuteMethod(void);
 
 //internal variables
 typedef PA_long32 process_number_t;
@@ -50,3 +51,7 @@ typedef PA_Unichar* process_name_t;
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "Rpcrt4.lib")
 #endif
+
+#define SYSTEM_NOTIFICATION_NOT_FOLDER_ERROR (-1)
+#define SYSTEM_NOTIFICATION_INVALID_PATH_ERROR (-2)
+#define SYSTEM_NOTIFICATION_INVALID_METHOD_NAME_ERROR (-3)

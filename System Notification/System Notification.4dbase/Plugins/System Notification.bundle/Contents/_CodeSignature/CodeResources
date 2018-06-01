@@ -100,7 +100,7 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			h6nbtInEtdXe121x4kl4czcFdbI=
+			iaa1V92G8iTtpk3r1wAFaXTwrns=
 			</data>
 			<key>optional</key>
 			<true/>
@@ -112,15 +112,6 @@
 	</dict>
 	<key>files2</key>
 	<dict>
-		<key>MacOS/System Notification.html</key>
-		<dict>
-			<key>cdhash</key>
-			<data>
-			a9lN/mDuXS241bK3xDU1CSRQWXc=
-			</data>
-			<key>requirement</key>
-			<string>identifier "System Notification" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = Y69CWUC25B</string>
-		</dict>
 		<key>QuickLook/Thumbnail.png</key>
 		<dict>
 			<key>hash</key>
@@ -389,11 +380,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			h6nbtInEtdXe121x4kl4czcFdbI=
+			iaa1V92G8iTtpk3r1wAFaXTwrns=
 			</data>
 			<key>hash2</key>
 			<data>
-			AXggawzafVDbJy/iXT7aTFllc6XZtcdnX7X0aeGgy08=
+			V8scsbJSgEE7ndnoBp4tS7d7UIVUg9LI0yrtLNRCaf8=
 			</data>
 			<key>optional</key>
 			<true/>
@@ -413,44 +404,22 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			R5q+VDIxSU+1qXYxdwy/HLnoYpc=
+			LpmbfY4B1wxJNZLV6Ww78eaz/uQ=
 			</data>
 			<key>hash2</key>
 			<data>
-			y7sK1eV4r1bb1ZX2pX4BUv0VyM/lgZXc04J4RGW3X5I=
-			</data>
-		</dict>
-		<key>Windows/System Notification.html</key>
-		<dict>
-			<key>hash</key>
-			<data>
-			3f3hE90+GMuzyHmK9RVQvLK+Zs8=
-			</data>
-			<key>hash2</key>
-			<data>
-			EKLRdLPtg+PsdxOrCPdnhlHZLbWCJYLapu/sbQTYgHg=
+			NU+n2G4qLdzN6Dha/8jm/5X8Mgwb/yo5lLccozZzJss=
 			</data>
 		</dict>
 		<key>Windows64/System Notification.4DX</key>
 		<dict>
 			<key>hash</key>
 			<data>
-			+eBtKtipWUM3c+2tr22/g/tMIuw=
+			VUuz4Mijm20l612hMqgLGZ+z+0w=
 			</data>
 			<key>hash2</key>
 			<data>
-			KcAo/UISBB72mNrdSWeXV+Lh5KI1briRsralMFqZAds=
-			</data>
-		</dict>
-		<key>Windows64/System Notification.html</key>
-		<dict>
-			<key>hash</key>
-			<data>
-			3f3hE90+GMuzyHmK9RVQvLK+Zs8=
-			</data>
-			<key>hash2</key>
-			<data>
-			EKLRdLPtg+PsdxOrCPdnhlHZLbWCJYLapu/sbQTYgHg=
+			7i621EinhEBrBQKAzKRWDbzv224TCZgxQfwGfGaWLjg=
 			</data>
 		</dict>
 		<key>manifest.json</key>
