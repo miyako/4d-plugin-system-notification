@@ -1,1 +1,0 @@
-﻿{"name":"System Notification","id":20000,"commands":[{"theme":"Notification","syntax":"SN Set method(&T):L"},{"theme":"Notification","syntax":"SN Get method:T"}]}

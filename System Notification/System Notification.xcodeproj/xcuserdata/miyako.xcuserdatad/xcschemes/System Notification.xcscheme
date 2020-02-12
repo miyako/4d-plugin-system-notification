@@ -29,8 +29,6 @@
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
       </Testables>
-      <AdditionalOptions>
-      </AdditionalOptions>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Deployment"
@@ -44,7 +42,7 @@
       allowLocationSimulation = "YES">
       <PathRunnable
          runnableDebuggingMode = "0"
-         FilePath = "/Applications/4D/4D v16 R6/32-bit version/4D 32-bit.app">
+         FilePath = "/Applications/4D v17 R6/4D.app">
       </PathRunnable>
       <MacroExpansion>
          <BuildableReference
@@ -55,8 +53,6 @@
             ReferencedContainer = "container:System Notification.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
-      <AdditionalOptions>
-      </AdditionalOptions>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Deployment"

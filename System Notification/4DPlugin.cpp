@@ -14,8 +14,8 @@
 
 #pragma mark -
 
-namespace SN
-{
+namespace SN {
+
 	process_name_t MONITOR_PROCESS_NAME = (PA_Unichar *)"$\0S\0L\0E\0E\0P\0_\0N\0O\0T\0I\0F\0I\0C\0A\0T\0I\0O\0N\0\0\0";
 	process_number_t MONITOR_PROCESS_ID = 0;
 	process_stack_size_t MONITOR_PROCESS_STACK_SIZE = 0;
@@ -122,8 +122,8 @@ namespace SN
 #if CGFLOAT_IS_DOUBLE
 static IMP __orig_imp_applicationShouldTerminate;
 
-NSApplicationTerminateReply __swiz_applicationShouldTerminate(id self, SEL _cmd, id sender)
-{	
+NSApplicationTerminateReply __swiz_applicationShouldTerminate(id self, SEL _cmd, id sender) {
+    
 	[SN::listener call:6];
 	
 	return NSTerminateCancel;//refuse to quit
@@ -132,22 +132,23 @@ NSApplicationTerminateReply __swiz_applicationShouldTerminate(id self, SEL _cmd,
 IMP __swiz_imp_applicationShouldTerminate = (IMP)__swiz_applicationShouldTerminate;
 #else
 AEEventHandlerUPP __upp_applicationShouldTerminate;
-OSErr carbon_applicationShouldTerminate(const AppleEvent *appleEvt, AppleEvent* reply, UInt32 refcon)
-{
+OSErr carbon_applicationShouldTerminate(const AppleEvent *appleEvt, AppleEvent* reply, UInt32 refcon) {
+    
 	[SN::listener call:6];
 	
 	return noErr;
 }
-static pascal OSErr HandleQuitMessage(const AppleEvent *appleEvt, AppleEvent *reply, long refcon)
-{
+
+static pascal OSErr HandleQuitMessage(const AppleEvent *appleEvt, AppleEvent *reply, long refcon) {
+    
 	return userCanceledErr;
 }
 #endif
 
 @implementation Listener
 
-- (id)init
-{
+- (id)init {
+    
 	if(!(self = [super init])) return self;
 	
 	NSNotificationCenter *center = [[NSWorkspace sharedWorkspace]notificationCenter];
@@ -204,8 +205,8 @@ static pascal OSErr HandleQuitMessage(const AppleEvent *appleEvt, AppleEvent *re
 	return self;
 }
 
-- (void)dealloc
-{
+- (void)dealloc {
+    
 	/* swizzle */
 #if CGFLOAT_IS_DOUBLE
 	Class MainAppDelegateClass = [[[NSApplication sharedApplication]delegate]class];
@@ -229,33 +230,33 @@ static pascal OSErr HandleQuitMessage(const AppleEvent *appleEvt, AppleEvent *re
 	[super dealloc];
 }
 
-- (void)didWake:(NSNotification *)notification
-{
+- (void)didWake:(NSNotification *)notification {
+    
 	[self call:1];
 }
 
-- (void)willSleep:(NSNotification *)notification
-{
+- (void)willSleep:(NSNotification *)notification {
+    
 	[self call:2];
 }
 
-- (void)willPowerOff:(NSNotification *)notification
-{
+- (void)willPowerOff:(NSNotification *)notification {
+    
 	[self call:3];
 }
 
-- (void)screensDidWake:(NSNotification *)notification
-{
+- (void)screensDidWake:(NSNotification *)notification {
+    
 	[self call:4];
 }
 
-- (void)screensDidSleep:(NSNotification *)notification
-{
+- (void)screensDidSleep:(NSNotification *)notification {
+    
 	[self call:5];
 }
 
-- (void)call:(event_id_t)event
-{
+- (void)call:(event_id_t)event {
+    
 	SN::CALLBACK_EVENT_ID = event;
 	SN::CALLBACK_EVENT_IDS.push_back(SN::CALLBACK_EVENT_ID);
 	listenerLoopExecute();
@@ -267,8 +268,8 @@ static pascal OSErr HandleQuitMessage(const AppleEvent *appleEvt, AppleEvent *re
 
 #pragma mark -
 
-void generateUuid(C_TEXT &returnValue)
-{
+void generateUuid(C_TEXT &returnValue) {
+    
 #if VERSIONMAC
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
 	returnValue.setUTF16String([[[NSUUID UUID]UUIDString]stringByReplacingOccurrencesOfString:@"-" withString:@""]);
@@ -301,8 +302,8 @@ void generateUuid(C_TEXT &returnValue)
 
 #pragma mark -
 
-bool IsProcessOnExit()
-{
+bool IsProcessOnExit() {
+    
 	C_TEXT name;
 	PA_long32 state, time;
 	PA_GetProcessInfo(PA_GetCurrentProcessNumber(), name, &state, &time);
@@ -311,8 +312,8 @@ bool IsProcessOnExit()
 	return (!procName.compare(exitProcName));
 }
 
-void OnStartup()
-{
+void OnStartup() {
+    
 #if VERSIONMAC
 
 #else
@@ -320,18 +321,23 @@ void OnStartup()
 #endif
 }
 
-void OnCloseProcess()
-{
+void OnExit() {
+    
+    listenerLoopFinish();
+}
+
+void OnCloseProcess() {
+    
 	if(IsProcessOnExit())
 	{
-		listenerLoopFinish();
+		OnExit();
 	}
 }
 
 #pragma mark -
 
-void listenerLoop()
-{
+void listenerLoop() {
+    
 	SN::MONITOR_PROCESS_SHOULD_TERMINATE = false;
 
 #if VERSIONMAC
@@ -388,8 +394,8 @@ void listenerLoop()
 	PA_KillProcess();
 }
 
-void listenerLoopStart()
-{
+void listenerLoopStart() {
+    
 	if(!SN::MONITOR_PROCESS_ID)
 	{
 		SN::MONITOR_PROCESS_ID = PA_NewProcess((void *)listenerLoop,
@@ -398,8 +404,8 @@ void listenerLoopStart()
 	}
 }
 
-void listenerLoopFinish()
-{
+void listenerLoopFinish() {
+    
 	if(SN::MONITOR_PROCESS_ID)
 	{
 		
@@ -415,15 +421,15 @@ void listenerLoopFinish()
 	}
 }
 
-void listenerLoopExecute()
-{
+void listenerLoopExecute() {
+    
 	SN::MONITOR_PROCESS_SHOULD_TERMINATE = false;
 	
 	PA_UnfreezeProcess(SN::MONITOR_PROCESS_ID);
 }
 
-void listenerLoopExecuteMethod()
-{
+void listenerLoopExecuteMethod() {
+    
 	std::vector<event_id_t>::iterator e = SN::CALLBACK_EVENT_IDS.begin();
 	event_id_t event = (*e) - 1;
 	
@@ -459,8 +465,8 @@ void listenerLoopExecuteMethod()
 
 #pragma mark -
 
-void PluginMain(PA_long32 selector, PA_PluginParameters params)
-{
+void PluginMain(PA_long32 selector, PA_PluginParameters params) {
+    
 	try
 	{
 		PA_long32 pProcNum = selector;
@@ -475,8 +481,8 @@ void PluginMain(PA_long32 selector, PA_PluginParameters params)
 	}
 }
 
-void CommandDispatcher (PA_long32 pProcNum, sLONG_PTR *pResult, PackagePtr pParams)
-{
+void CommandDispatcher (PA_long32 pProcNum, sLONG_PTR *pResult, PackagePtr pParams) {
+    
 	switch(pProcNum)
 	{
 			
@@ -488,6 +494,10 @@ void CommandDispatcher (PA_long32 pProcNum, sLONG_PTR *pResult, PackagePtr pPara
 		case kCloseProcess :
 			OnCloseProcess();
 			break;
+            
+//        case kDeinitPlugin :
+//            OnExit();
+//            break;
 			
 // --- Notification
 
@@ -506,8 +516,8 @@ void CommandDispatcher (PA_long32 pProcNum, sLONG_PTR *pResult, PackagePtr pPara
 
 #pragma mark -
 
-void SN_Set_method(sLONG_PTR *pResult, PackagePtr pParams)
-{
+void SN_Set_method(sLONG_PTR *pResult, PackagePtr pParams) {
+    
 	C_TEXT Param1;
 	C_LONGINT returnValue;
 	
@@ -548,7 +558,7 @@ void SN_Set_method(sLONG_PTR *pResult, PackagePtr pParams)
 	returnValue.setReturn(pResult);
 }
 
-void SN_Get_method(sLONG_PTR *pResult, PackagePtr pParams)
-{
+void SN_Get_method(sLONG_PTR *pResult, PackagePtr pParams) {
+    
 	SN::LISTENER_METHOD.setReturn(pResult);
 }
