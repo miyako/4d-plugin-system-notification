@@ -45,6 +45,10 @@ typedef PA_Unichar* process_name_t;
 - (void)screensDidWake:(NSNotification *)notification;
 - (void)willPowerOff:(NSNotification *)notification;
 - (void)call:(event_id_t)event;
+- (void)screenIsLocked:(NSNotification *)notification;
+- (void)screenIsUnlocked:(NSNotification *)notification;
+- (void)screensaverDidstart:(NSNotification *)notification;
+- (void)screensaverDidStop:(NSNotification *)notification;
 @end
 #else
 #include "Shlwapi.h"

@@ -153,36 +153,62 @@ static pascal OSErr HandleQuitMessage(const AppleEvent *appleEvt, AppleEvent *re
 	
 	NSNotificationCenter *center = [[NSWorkspace sharedWorkspace]notificationCenter];
 	
-	[center
-	 addObserver:self
-	 selector: @selector(willSleep:)
-	 name:NSWorkspaceWillSleepNotification
-	 object:nil];
+    [center addObserver:self
+               selector:@selector(willSleep:)
+                   name:NSWorkspaceWillSleepNotification
+                 object:nil
+     ];
+    
+    [center addObserver:self
+               selector:@selector(didWake:)
+                   name:NSWorkspaceDidWakeNotification
+                 object:nil
+     ];
+    
+    [center addObserver:self
+               selector:@selector(screensDidSleep:)
+                   name:NSWorkspaceScreensDidSleepNotification
+                 object:nil
+     ];
+    
+    [center addObserver:self
+               selector:@selector(screensDidWake:)
+                   name:NSWorkspaceScreensDidWakeNotification
+                 object:nil
+     ];
+    
+    [center addObserver:self
+               selector:@selector(willPowerOff:)
+                   name:NSWorkspaceWillPowerOffNotification
+                 object:nil
+     ];
+    
+    NSDistributedNotificationCenter *defaultCenter = [NSDistributedNotificationCenter defaultCenter];
 	
-	[center
-	 addObserver:self
-	 selector: @selector(didWake:)
-	 name:NSWorkspaceDidWakeNotification
-	 object:nil];
-	
-	[center
-	 addObserver:self
-	 selector: @selector(screensDidSleep:)
-	 name:NSWorkspaceScreensDidSleepNotification
-	 object:nil];
-	
-	[center
-	 addObserver:self
-	 selector: @selector(screensDidWake:)
-	 name:NSWorkspaceScreensDidWakeNotification
-	 object:nil];
-	
-	[center
-	 addObserver:self
-	 selector: @selector(willPowerOff:)
-	 name:NSWorkspaceWillPowerOffNotification
-	 object:nil];
-	
+    [defaultCenter addObserver:self
+                      selector:@selector(screensaverDidstart:)
+                          name:@"com.apple.screensaver.didstart"
+                        object:nil
+     ];
+    
+    [defaultCenter addObserver:self
+                      selector:@selector(screensaverDidStop:)
+                          name:@"com.apple.screensaver.didstop"
+                        object:nil
+     ];
+    
+    [defaultCenter addObserver:self
+                      selector:@selector(screenIsLocked:)
+                          name:@"com.apple.screenIsLocked"
+                        object:nil
+     ];
+    
+    [defaultCenter addObserver:self
+                      selector:@selector(screenIsUnlocked:)
+                          name:@"com.apple.screenIsUnlocked"
+                        object:nil
+     ];
+    
 	/* swizzle */
 #if CGFLOAT_IS_DOUBLE
 	Class MainAppDelegateClass = [[[NSApplication sharedApplication]delegate]class];
@@ -226,6 +252,8 @@ static pascal OSErr HandleQuitMessage(const AppleEvent *appleEvt, AppleEvent *re
 #endif
 	
 	[[[NSWorkspace sharedWorkspace] notificationCenter]removeObserver:self];
+    
+    [[NSDistributedNotificationCenter defaultCenter]removeObserver:self];
 	
 	[super dealloc];
 }
@@ -253,6 +281,26 @@ static pascal OSErr HandleQuitMessage(const AppleEvent *appleEvt, AppleEvent *re
 - (void)screensDidSleep:(NSNotification *)notification {
     
 	[self call:5];
+}
+
+- (void)screenIsLocked:(NSNotification *)notification {
+    
+    [self call:6];
+}
+
+- (void)screenIsUnlocked:(NSNotification *)notification {
+    
+    [self call:7];
+}
+
+- (void)screensaverDidstart:(NSNotification *)notification {
+    
+    [self call:8];
+}
+
+- (void)screensaverDidStop:(NSNotification *)notification {
+    
+    [self call:9];
 }
 
 - (void)call:(event_id_t)event {
