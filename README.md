@@ -3,6 +3,8 @@
 [![license](https://img.shields.io/github/license/miyako/4d-plugin-system-notification)](LICENSE)
 ![downloads](https://img.shields.io/github/downloads/miyako/4d-plugin-system-notification/total)
 
+**Note**: for v17 and earlier, move `manifest.json` to `Contents`
+
 # 4d-plugin-system-notification
 Register callback method for display sleep/wake, system sleep/wake, system reboot (mac) and logoff (windows).
 
