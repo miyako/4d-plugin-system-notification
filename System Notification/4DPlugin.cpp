@@ -285,22 +285,22 @@ static pascal OSErr HandleQuitMessage(const AppleEvent *appleEvt, AppleEvent *re
 
 - (void)screenIsLocked:(NSNotification *)notification {
     
-    [self call:6];
+    [self call:7];
 }
 
 - (void)screenIsUnlocked:(NSNotification *)notification {
     
-    [self call:7];
+    [self call:8];
 }
 
 - (void)screensaverDidstart:(NSNotification *)notification {
     
-    [self call:8];
+    [self call:9];
 }
 
 - (void)screensaverDidStop:(NSNotification *)notification {
     
-    [self call:9];
+    [self call:10];
 }
 
 - (void)call:(event_id_t)event {

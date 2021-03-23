@@ -100,14 +100,18 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			x3yzT4XA9mQI66O8R1M6uDHThUU=
+			n9bt5P8dnH3vrb3+RPturEoxsZE=
 			</data>
 			<key>optional</key>
 			<true/>
 		</dict>
 		<key>Resources/constants.xlf</key>
 		<data>
-		5b2n/poqtYAuTd9JXfRtxdqaqkA=
+		3HFrtFdZ2jgTZu2jXqV8ghC9sY8=
+		</data>
+		<key>Resources/manifest.json</key>
+		<data>
+		+4kdl+BF8d4EvtnTl2nDjM2Ch4k=
 		</data>
 	</dict>
 	<key>files2</key>
@@ -380,11 +384,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			x3yzT4XA9mQI66O8R1M6uDHThUU=
+			n9bt5P8dnH3vrb3+RPturEoxsZE=
 			</data>
 			<key>hash2</key>
 			<data>
-			WJDgyNLjtxIMW9HJO2/SdXipHpjkls+MjMFLsv18AMo=
+			XvQEUPiE7M7J6TD+FdLseRrkaEuSYdTihj1BONuTsiA=
 			</data>
 			<key>optional</key>
 			<true/>
@@ -393,11 +397,22 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			5b2n/poqtYAuTd9JXfRtxdqaqkA=
+			3HFrtFdZ2jgTZu2jXqV8ghC9sY8=
 			</data>
 			<key>hash2</key>
 			<data>
-			galR1xYQlz2HoHIYR7+YgKDjUO8h+e1tTCk62z+MNQ8=
+			Idm7BMUtsLxv+g8M3VWResTRLLEDEVPiwDgO0eXYIQA=
+			</data>
+		</dict>
+		<key>Resources/manifest.json</key>
+		<dict>
+			<key>hash</key>
+			<data>
+			+4kdl+BF8d4EvtnTl2nDjM2Ch4k=
+			</data>
+			<key>hash2</key>
+			<data>
+			prb2rZeSiSXiMoyJmXeNtHuNDiye+H1cp0x49St9nwE=
 			</data>
 		</dict>
 		<key>Windows/System Notification.4DX</key>
@@ -421,15 +436,6 @@
 			<data>
 			7i621EinhEBrBQKAzKRWDbzv224TCZgxQfwGfGaWLjg=
 			</data>
-		</dict>
-		<key>manifest.json</key>
-		<dict>
-			<key>cdhash</key>
-			<data>
-			c+1opGFX57iyhg+x28IZVnocJRI=
-			</data>
-			<key>requirement</key>
-			<string>identifier manifest and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = Y69CWUC25B</string>
 		</dict>
 	</dict>
 	<key>rules</key>
