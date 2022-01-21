@@ -545,8 +545,12 @@ void listenerLoop() {
         SN::METHOD_PROCESS_ID = 0;
     }
     
+#if VERSIONMAC
     PA_RunInMainProcess((PA_RunInMainProcessProcPtr)listener_end, NULL);
-    
+#else
+	listener_end();
+#endif
+
     PA_KillProcess();
 }
 
@@ -715,8 +719,11 @@ void SN_Set_method(PA_PluginParameters params) {
             SN::LISTENER_METHOD.fromParamAtIndex(pParams, 1);
         }
         
+#if VERSIONMAC
         PA_RunInMainProcess((PA_RunInMainProcessProcPtr)listener_start, NULL);
-        
+#else
+		listener_start();
+#endif
         listenerLoopStart();
         returnValue.setIntValue(1);
     }
