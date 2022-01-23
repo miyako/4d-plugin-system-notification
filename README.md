@@ -6,14 +6,27 @@
 # 4d-plugin-system-notification
 Register callback method for display sleep/wake, system sleep/wake, system reboot (mac) and logoff (windows).
 
-**News**: 
+#### These events are fired on Mac only
 
-``3.1`` added 4 new events for Mac:
+* `SN On Before Quit`
+* `SN On Screensaver Stop`
 
-* SN On Screensaver Stop
-* SN On Screensaver Start
-* SN On Screen Lock
-* SN On Screen Unlock
+#### control+alt+delete...lock generates events
+* `SN On Screen Lock` 
+*  `SN On Screen Unlock`.
+
+#### windows...sleep generates events 
+
+* `SN On Before Screen Sleep` 
+* `SN On Screen Lock` 
+* `SN On Before Machine Sleep` 
+* `SN On After Machine Wake` 
+* `SN On After Screen Wake` 
+* `SN On Screen Unlock`
+
+#### windows...power...reboot generates event
+
+* `SN On Before Machine Power Off` (call `QUIT 4D` here)
 
 ## Examples
 
