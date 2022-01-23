@@ -26,7 +26,7 @@ Register callback method for display sleep/wake, system sleep/wake, system reboo
 
 #### windows...power...reboot generates event
 
-* `SN On Before Machine Power Off` (call `QUIT 4D` here)
+* `SN On Before Machine Power Off` (system won't reboot until you call `QUIT 4D` here)
 
 ## Examples
 
