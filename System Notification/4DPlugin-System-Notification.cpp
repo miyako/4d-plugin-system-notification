@@ -94,7 +94,6 @@ process_name_t MONITOR_PROCESS_NAME = (PA_Unichar *)"$\0S\0L\0E\0E\0P\0_\0N\0O\0
     //context management
     event_id_t CALLBACK_EVENT_ID = 0;
     std::vector<event_id_t>CALLBACK_EVENT_IDS;
-    bool termination_not_allowed = false;
 
     //callback management
     C_TEXT LISTENER_METHOD;
@@ -126,19 +125,41 @@ LRESULT CALLBACK customWndProc(HWND wnd, UINT msg, WPARAM wp, LPARAM lp){
     POWERBROADCAST_SETTING *pbs = (POWERBROADCAST_SETTING *)lp;
     
     switch (msg) {
+        case WM_WTSSESSION_CHANGE:
+            switch (wp) {
+                case WTS_SESSION_LOCK:
+                    SN::call(SN_On_Screen_Lock);//screen lock
+                    break;
+                case WTS_SESSION_UNLOCK:
+                    SN::call(SN_On_Screen_Unlock);//screen unlock
+                    break;
+                case WTS_SESSION_REMOTE_CONTROL:
+                case WTS_CONSOLE_CONNECT:
+                case WTS_CONSOLE_DISCONNECT:
+                case WTS_REMOTE_CONNECT:
+                case WTS_REMOTE_DISCONNECT:
+                case WTS_SESSION_LOGON:
+                case WTS_SESSION_LOGOFF:
+                default:
+                    break;
+            }
+            break;
         case WM_QUERYENDSESSION:
-            SN::call(3);
+            if(SN::PROCESS_SHOULD_TERMINATE){
+                return true;
+            }else{
+                SN::call(SN_On_Before_Machine_Power_Off);
+            }
             return false;//refuse to quit
             break;
         case WM_POWERBROADCAST:
             switch (wp) {
                 case PBT_APMRESUMEAUTOMATIC://resume
-                    SN::call(1);
+                    SN::call(SN_On_After_Machine_Wake);
                     break;
                 case PBT_APMSUSPEND://suspend
-                    SN::call(2);
+                    SN::call(SN_On_Before_Machine_Sleep);
                     break;
-                    
                 case PBT_POWERSETTINGCHANGE:
                     if(pbs->PowerSetting == GUID_MONITOR_POWER_ON)
                     {
@@ -149,14 +170,23 @@ LRESULT CALLBACK customWndProc(HWND wnd, UINT msg, WPARAM wp, LPARAM lp){
                         switch (state)
                         {
                         case 0:
-                            SN::call(5);//screen off
+                            SN::call(SN_On_Before_Screen_Sleep);//screen off
                             break;
                         case 1:
-                            SN::call(4);//screen on
+                            SN::call(SN_On_After_Screen_Wake);//screen on
                             break;
                         }
                         }
                     }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case WM_SYSCOMMAND:
+            switch (wp) {
+                case SC_SCREENSAVE:
+                    SN::call(SN_On_Screensaver_Start);
                     break;
                 default:
                     break;
@@ -188,6 +218,7 @@ static void listener_start() {
 			DEVICE_NOTIFY_WINDOW_HANDLE);
         SN::originalWndProc = (WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC);
         SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)SN::customWndProc);
+        WTSRegisterSessionNotification(hwnd, NOTIFY_FOR_THIS_SESSION);
     }
 #endif
 }
@@ -205,6 +236,7 @@ static void listener_end() {
 		SN::notificationHandle = RegisterPowerSettingNotification(hwnd, &GUID_MONITOR_POWER_ON, DEVICE_NOTIFY_WINDOW_HANDLE);
 		SN::originalWndProc = (WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC);
 		SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)SN::customWndProc);
+        WTSUnRegisterSessionNotification(hwnd);
 	}
 #endif
     
@@ -217,7 +249,7 @@ static IMP __orig_imp_applicationShouldTerminate;
 
 NSApplicationTerminateReply __swiz_applicationShouldTerminate(id self, SEL _cmd, id sender) {
     
-    [SN::listener call:6];
+    [SN::listener call:SN_On_Before_Quit];
     
     return NSTerminateCancel;//refuse to quit
 }
@@ -227,7 +259,7 @@ IMP __swiz_imp_applicationShouldTerminate = (IMP)__swiz_applicationShouldTermina
 AEEventHandlerUPP __upp_applicationShouldTerminate;
 OSErr carbon_applicationShouldTerminate(const AppleEvent *appleEvt, AppleEvent* reply, UInt32 refcon) {
     
-    [SN::listener call:6];
+    [SN::listener call:SN_On_Before_Quit];
     
     return noErr;
 }
@@ -353,42 +385,42 @@ static pascal OSErr HandleQuitMessage(const AppleEvent *appleEvt, AppleEvent *re
 
 - (void)didWake:(NSNotification *)notification {
     
-    [self call:1];
+    [self call:SN_On_After_Machine_Wake];
 }
 
 - (void)willSleep:(NSNotification *)notification {
     
-    [self call:2];
+    [self call:SN_On_Before_Machine_Sleep];
 }
 
 - (void)willPowerOff:(NSNotification *)notification {
     
-    [self call:3];
+    [self call:SN_On_Before_Machine_Power_Off];
 }
 
 - (void)screensDidWake:(NSNotification *)notification {
     
-    [self call:4];
+    [self call:SN_On_After_Screen_Wake];
 }
 
 - (void)screensDidSleep:(NSNotification *)notification {
     
-    [self call:5];
+    [self call:SN_On_Before_Screen_Sleep];
 }
 
 - (void)screenIsLocked:(NSNotification *)notification {
     
-    [self call:7];
+    [self call:SN_On_Screen_Lock];
 }
 
 - (void)screenIsUnlocked:(NSNotification *)notification {
     
-    [self call:8];
+    [self call:SN_On_Screen_Unlock];
 }
 
 - (void)screensaverDidstart:(NSNotification *)notification {
     
-    [self call:9];
+    [self call:SN_On_Screensaver_Start];
 }
 
 - (void)screensaverDidStop:(NSNotification *)notification {

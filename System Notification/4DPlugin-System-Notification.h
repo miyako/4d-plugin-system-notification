@@ -61,10 +61,24 @@ typedef PA_long32 event_id_t;
 #include "Shlwapi.h"
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "Rpcrt4.lib")
+#include "wtsapi32.h"
+#pragma comment(lib, "wtsapi32.lib")
 #endif
 
 #define SYSTEM_NOTIFICATION_NOT_FOLDER_ERROR (-1)
 #define SYSTEM_NOTIFICATION_INVALID_PATH_ERROR (-2)
 #define SYSTEM_NOTIFICATION_INVALID_METHOD_NAME_ERROR (-3)
+
+// -1 than constants in 4D language
+
+#define SN_On_After_Machine_Wake 1
+#define SN_On_Before_Machine_Sleep 2
+#define SN_On_Before_Machine_Power_Off 3
+#define SN_On_After_Screen_Wake 4
+#define SN_On_Before_Screen_Sleep 5
+#define SN_On_Before_Quit 6
+#define SN_On_Screen_Lock 7
+#define SN_On_Screen_Unlock 8
+#define SN_On_Screensaver_Start 9
 
 #endif /* PLUGIN_SYSTEM_NOTIFICATION_H */
