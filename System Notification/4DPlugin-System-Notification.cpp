@@ -675,13 +675,16 @@ void listenerLoopExecuteMethod() {
     
 }
 
+#define MAX_PROCESS_NAME 256
+
 bool IsProcessOnExit()
 {
+    std::vector<PA_Unichar> name(MAX_PROCESS_NAME);
+    
     PA_long32 state, time;
     
-    std::vector<PA_Unichar>buf(33);
-    PA_GetProcessInfo(PA_GetCurrentProcessNumber(), &buf[0], &state, &time);
-    CUTF16String procName(&buf[0]);
+    PA_GetProcessInfo(PA_GetCurrentProcessNumber(), &name[0], &state, &time);
+    CUTF16String procName(&name[0]);
     CUTF16String exitProcName((PA_Unichar *)"$\0x\0x\0\0\0");
     return (!procName.compare(exitProcName));
 }
