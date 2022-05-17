@@ -109,6 +109,8 @@ process_name_t MONITOR_PROCESS_NAME = (PA_Unichar *)"$\0S\0L\0E\0E\0P\0_\0N\0O\0
 #if VERSIONWIN
 namespace SN
 {
+    HWND MDI = NULL;
+
     WNDPROC originalWndProc = NULL;
     HPOWERNOTIFY notificationHandle = NULL;
     bool first_event_call = false;
@@ -210,7 +212,7 @@ static void listener_start() {
         SN::listener = [[SNListener alloc]init];
     }
 #else
-    HWND hwnd = getMDI();
+    HWND hwnd = SN::MDI;
     if(hwnd != NULL) {
         SN::first_event_call = true;
         SN::notificationHandle = RegisterPowerSettingNotification(
@@ -232,7 +234,7 @@ static void listener_end() {
     SN::listener = nil;
     }
 #else
-    HWND hwnd = getMDI();
+    HWND hwnd = SN::MDI;
 	if (hwnd != NULL) {
 		SN::first_event_call = true;
 		SN::notificationHandle = RegisterPowerSettingNotification(hwnd, &GUID_MONITOR_POWER_ON, DEVICE_NOTIFY_WINDOW_HANDLE);
@@ -714,6 +716,7 @@ void PluginMain(PA_long32 selector, PA_PluginParameters params) {
             case kServerInitPlugin :
                 OnStartup();
 #if VERSIONWIN
+                SN::MDI = getMDI();
                 listener_start();
 #endif
                 break;
