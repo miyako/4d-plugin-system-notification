@@ -226,9 +226,11 @@ static void listener_start() {
 static void listener_end() {
     
 #if VERSIONMAC
+    if(SN::listener) {
     /* must do this in main process */
     [SN::listener release];
     SN::listener = nil;
+    }
 #else
     HWND hwnd = getMDI();
 	if (hwnd != NULL) {
@@ -580,7 +582,7 @@ void listenerLoop() {
 #if VERSIONMAC
     PA_RunInMainProcess((PA_RunInMainProcessProcPtr)listener_end, NULL);
 #else
-	listener_end();
+//	listener_end();
 #endif
 
     PA_KillProcess();
@@ -711,10 +713,20 @@ void PluginMain(PA_long32 selector, PA_PluginParameters params) {
             case kInitPlugin :
             case kServerInitPlugin :
                 OnStartup();
+#if VERSIONWIN
+                listener_start();
+#endif
                 break;
                 
             case kCloseProcess :
                 OnCloseProcess();
+                break;
+            
+            case kDeinitPlugin :
+            case kServerDeinitPlugin :
+#if VERSIONWIN
+                listener_end();
+#endif
                 break;
                 
 			// --- System Notification
@@ -757,7 +769,7 @@ void SN_Set_method(PA_PluginParameters params) {
 #if VERSIONMAC
         PA_RunInMainProcess((PA_RunInMainProcessProcPtr)listener_start, NULL);
 #else
-		listener_start();
+//		listener_start();
 #endif
         listenerLoopStart();
         returnValue.setIntValue(1);
