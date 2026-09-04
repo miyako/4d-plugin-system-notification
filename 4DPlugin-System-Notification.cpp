@@ -28,13 +28,21 @@ static bool isSDI() {
 
     PA_ExecuteCommandByID(443 /*GET WINDOW RECT*/, args, 5);
 
-    return (
+    bool result = (
        (PA_GetLongintVariable(args[0]) == 0)
     && (PA_GetLongintVariable(args[1]) == 0)
     && (PA_GetLongintVariable(args[2]) == 0)
     && (PA_GetLongintVariable(args[3]) == 0));
     
-    /* the variable belongs to 4D, no need to PA_ClearVariable (I think) */
+    /* caller owns variables created via PA_CreateVariable and must clear them,
+       matching the pairing used elsewhere in this file (see listenerLoopExecuteMethod) */
+    PA_ClearVariable(&args[0]);
+    PA_ClearVariable(&args[1]);
+    PA_ClearVariable(&args[2]);
+    PA_ClearVariable(&args[3]);
+    PA_ClearVariable(&args[4]);
+    
+    return result;
 
 #endif
     
@@ -54,7 +62,14 @@ static HWND getMDI() {
     
     HWND mdi = NULL;
     wchar_t path[_MAX_PATH] = { 0 };
-    wchar_t * applicationPath = wcscpy(path, (const wchar_t *)PA_GetApplicationFullPath().fString);
+    const wchar_t *fullPath = (const wchar_t *)PA_GetApplicationFullPath().fString;
+    size_t fullPathLen = fullPath ? wcslen(fullPath) : 0;
+    
+    //guard against overflow: bail out rather than copy a path we can't fit
+    if (fullPathLen == 0 || fullPathLen >= _MAX_PATH)
+        return NULL;
+    
+    wcscpy(path, fullPath);
     
     //remove file name (4D.exe)
     PathRemoveFileSpec(path);
@@ -114,11 +129,17 @@ namespace SN
     WNDPROC originalWndProc = NULL;
     HPOWERNOTIFY notificationHandle = NULL;
     bool first_event_call = false;
+    bool listenerActive = false; /* guards against double-subclassing / double-registration */
 
     void call(event_id_t event)
     {
-        SN::CALLBACK_EVENT_ID = event;
-        SN::CALLBACK_EVENT_IDS.push_back(SN::CALLBACK_EVENT_ID);
+        if(1)
+        {
+            std::lock_guard<std::mutex> lock(globalMutex);
+            
+            SN::CALLBACK_EVENT_ID = event;
+            SN::CALLBACK_EVENT_IDS.push_back(SN::CALLBACK_EVENT_ID);
+        }
         listenerLoopExecute();
     }
 
@@ -213,7 +234,7 @@ static void listener_start() {
     }
 #else
     HWND hwnd = SN::MDI;
-    if(hwnd != NULL) {
+    if(hwnd != NULL && !SN::listenerActive) {
         SN::first_event_call = true;
         SN::notificationHandle = RegisterPowerSettingNotification(
 			hwnd, &GUID_MONITOR_POWER_ON,                     
@@ -221,6 +242,7 @@ static void listener_start() {
         SN::originalWndProc = (WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC);
         SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)SN::customWndProc);
         WTSRegisterSessionNotification(hwnd, NOTIFY_FOR_THIS_SESSION);
+        SN::listenerActive = true;
     }
 #endif
 }
@@ -235,12 +257,16 @@ static void listener_end() {
     }
 #else
     HWND hwnd = SN::MDI;
-	if (hwnd != NULL) {
-		SN::first_event_call = true;
-		SN::notificationHandle = RegisterPowerSettingNotification(hwnd, &GUID_MONITOR_POWER_ON, DEVICE_NOTIFY_WINDOW_HANDLE);
-		SN::originalWndProc = (WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC);
-		SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)SN::customWndProc);
+	if (hwnd != NULL && SN::listenerActive) {
+		/* restore the window procedure we replaced in listener_start */
+		SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)SN::originalWndProc);
+		/* release the power-setting notification we registered in listener_start */
+		if (SN::notificationHandle != NULL) {
+			UnregisterPowerSettingNotification(SN::notificationHandle);
+			SN::notificationHandle = NULL;
+		}
         WTSUnRegisterSessionNotification(hwnd);
+        SN::listenerActive = false;
 	}
 #endif
     
@@ -434,8 +460,13 @@ static pascal OSErr HandleQuitMessage(const AppleEvent *appleEvt, AppleEvent *re
 
 - (void)call:(event_id_t)event {
     
-    SN::CALLBACK_EVENT_ID = event;
-    SN::CALLBACK_EVENT_IDS.push_back(SN::CALLBACK_EVENT_ID);
+    if(1)
+    {
+        std::lock_guard<std::mutex> lock(globalMutex);
+        
+        SN::CALLBACK_EVENT_ID = event;
+        SN::CALLBACK_EVENT_IDS.push_back(SN::CALLBACK_EVENT_ID);
+    }
     listenerLoopExecute();
 }
 
@@ -644,8 +675,22 @@ void listenerLoopExecute() {
 
 void listenerLoopExecuteMethod() {
     
-    std::vector<event_id_t>::iterator e = SN::CALLBACK_EVENT_IDS.begin();
-    event_id_t event = (*e) - 1;
+    event_id_t event;
+    
+    if(1)
+    {
+        std::lock_guard<std::mutex> lock(globalMutex);
+        
+        if(SN::CALLBACK_EVENT_IDS.empty())
+            return; /* nothing queued (can't happen with correct callers, but never dereference end()) */
+        
+        std::vector<event_id_t>::iterator e = SN::CALLBACK_EVENT_IDS.begin();
+        event = (*e) - 1;
+        SN::CALLBACK_EVENT_IDS.erase(e);
+    }
+    
+    /* held for the duration of the method-name reads below, matching the writer's lock in SN_Set_method */
+    std::lock_guard<std::mutex> lock2(globalMutex2);
     
     method_id_t methodId = PA_GetMethodID((PA_Unichar *)SN::LISTENER_METHOD.getUTF16StringPtr());
     
@@ -654,8 +699,6 @@ void listenerLoopExecuteMethod() {
         PA_Variable    params[1];
         params[0] = PA_CreateVariable(eVK_Longint);
         PA_SetLongintVariable(&params[0], event);
-
-        SN::CALLBACK_EVENT_IDS.erase(e);
         
         PA_ExecuteMethodByID(methodId, params, 1);
         
@@ -668,8 +711,6 @@ void listenerLoopExecuteMethod() {
         params[0] = PA_CreateVariable(eVK_Unistring);
         PA_Unistring method = PA_CreateUnistring((PA_Unichar *)SN::LISTENER_METHOD.getUTF16StringPtr());
         PA_SetStringVariable(&params[0], &method);
-        
-        SN::CALLBACK_EVENT_IDS.erase(e);
         
         PA_ExecuteCommandByID(1007, params, 2);
         
@@ -787,6 +828,8 @@ void SN_Get_method(PA_PluginParameters params) {
     
     if(1)
     {
+        std::lock_guard<std::mutex> lock(globalMutex2);
+        
         SN::LISTENER_METHOD.setReturn(pResult);
     }
     
