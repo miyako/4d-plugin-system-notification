@@ -1,32 +1,21 @@
-![version](https://img.shields.io/badge/version-19%2B-5682DF)
+![version](https://img.shields.io/badge/version-17%2B-3E8B93)
 ![platform](https://img.shields.io/static/v1?label=platform&message=mac-intel%20|%20mac-arm%20|%20win-64&color=blue)
 [![license](https://img.shields.io/github/license/miyako/4d-plugin-system-notification)](LICENSE)
 ![downloads](https://img.shields.io/github/downloads/miyako/4d-plugin-system-notification/total)
 
+**Note**: for v17 and earlier, move `manifest.json` to `Contents`
+
 # 4d-plugin-system-notification
 Register callback method for display sleep/wake, system sleep/wake, system reboot (mac) and logoff (windows).
 
-#### These events are fired on Mac only
+**News**: 
 
-* `SN On Before Quit`
-* `SN On Screensaver Stop`
+``3.1`` added 4 new events for Mac:
 
-#### control+alt+delete...lock generates events
-* `SN On Screen Lock` 
-*  `SN On Screen Unlock`.
-
-#### windows...sleep generates events 
-
-* `SN On Before Screen Sleep` 
-* `SN On Screen Lock` 
-* `SN On Before Machine Sleep` 
-* `SN On After Machine Wake` 
-* `SN On After Screen Wake` 
-* `SN On Screen Unlock`
-
-#### windows...power...reboot generates event
-
-* `SN On Before Machine Power Off` (system won't reboot until you call `QUIT 4D` here)
+* SN On Screensaver Stop
+* SN On Screensaver Start
+* SN On Screen Lock
+* SN On Screen Unlock
 
 ## Examples
 

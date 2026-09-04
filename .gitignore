@@ -1,2 +1,5 @@
 *.DS_Store
 System Notification/build/*
+test/userPreferences.*
+test/Project/DerivedData/*
+build/*
