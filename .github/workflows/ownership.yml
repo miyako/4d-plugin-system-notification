@@ -1,0 +1,19 @@
+name: Ownership tests
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  ownership:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: ASan/UBSan ownership harness
+        run: tests/ownership/run.sh
